@@ -21,9 +21,9 @@ from PIL import Image
 import numpy as np
 import math
 
-from keras import backend as K
+from tensorflow.keras import backend as K
 K.set_image_data_format('channels_last')
-from keras.utils import print_summary
+from tensorflow.keras.utils import print_summary
 
 
 def combine_images(generated_images, height=None, width=None):

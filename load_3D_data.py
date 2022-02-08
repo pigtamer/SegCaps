@@ -25,11 +25,11 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
 
-from keras.preprocessing.image import *
+from tensorflow.keras.preprocessing.image import *
 
 from custom_data_aug import elastic_transform, salt_pepper_noise
 
@@ -37,7 +37,7 @@ debug = 0
 
 def load_data(root, split):
     # Load the training and testing lists
-    with open(join(root, 'split_lists', 'train_split_' + str(split) + '.csv'), 'rb') as f:
+    with open(join(root, 'split_lists', 'train_split_' + str(split) + '.csv'), 'rb') as f: #这不是傻X吗？
         reader = csv.reader(f)
         training_list = list(reader)
 
@@ -363,7 +363,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
             if aug_data:
                 img_batch[:count,...], mask_batch[:count,...] = augmentImages(img_batch[:count,...],
                                                                               mask_batch[:count,...])
-            if net.find('caps') != -1:
+            if net.find('caps') != -1: # check if a capsule archi is used
                 yield ([img_batch[:count, ...], mask_batch[:count, ...]],
                        [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...]])
             else:

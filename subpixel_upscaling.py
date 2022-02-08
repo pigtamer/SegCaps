@@ -8,9 +8,9 @@ Convolutional Neural Network" (https://arxiv.org/abs/1609.05158).
 from __future__ import absolute_import
 
 import tensorflow as tf
-from keras.engine import Layer
-from keras.utils.generic_utils import get_custom_objects
-from keras.utils.conv_utils import normalize_data_format
+from tensorflow.keras.engine import Layer
+from tensorflow.keras.utils.generic_utils import get_custom_objects
+from tensorflow.python.keras.utils.conv_utils import normalize_data_format
 
 class SubPixelUpscaling(Layer):
     """ This layer requires a Convolution2D prior to it, having output filters computed according to
@@ -23,10 +23,10 @@ class SubPixelUpscaling(Layer):
     # Example :
     ```python
         # A standard subpixel upscaling block
-        x = Convolution2D(256, 3, 3, padding='same', activation='relu')(...)
+        x = Convolution2D(256, 3, 3, padding="same", activation='relu')(...)
         u = SubPixelUpscaling(scale_factor=2)(x)
         [Optional]
-        x = Convolution2D(256, 3, 3, padding='same', activation='relu')(u)
+        x = Convolution2D(256, 3, 3, padding="same", activation='relu')(u)
     ```
         In practice, it is useful to have a second convolution layer after the
         SubPixelUpscaling layer to speed up the learning process.

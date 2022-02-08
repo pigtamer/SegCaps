@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-code from Keras.contrib. This is just a local copy in case that repo changes.
+code from tensorflow.keras.contrib. This is just a local copy in case that repo changes.
 
-DenseNet and DenseNet-FCN models for Keras.
+DenseNet and DenseNet-FCN models for tensorflow.keras.
 
 DenseNet is a network architecture where each layer is directly connected
 to every other layer in a feed-forward fashion (within each dense block).
@@ -52,30 +52,30 @@ from __future__ import division
 
 import warnings
 
-from keras.models import Model
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import Activation
-from keras.layers import Reshape
-from keras.layers import Conv2D
-from keras.layers import Conv2DTranspose
-from keras.layers import UpSampling2D
-from keras.layers import MaxPooling2D
-from keras.layers import AveragePooling2D
-from keras.layers import GlobalMaxPooling2D
-from keras.layers import GlobalAveragePooling2D
-from keras.layers import Input
-from keras.layers import concatenate
-from keras.layers import BatchNormalization
-from keras.regularizers import l2
-from keras.utils.layer_utils import convert_all_kernels_in_model
-from keras.utils.data_utils import get_file
-from keras.engine.topology import get_source_inputs
-from keras.applications.imagenet_utils import _obtain_input_shape
-from keras.applications.imagenet_utils import decode_predictions
-from keras.applications.imagenet_utils import preprocess_input as _preprocess_input
-import keras.backend as K
-from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import Reshape
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Conv2DTranspose
+from tensorflow.keras.layers import UpSampling2D
+from tensorflow.keras.layers import MaxPooling2D
+from tensorflow.keras.layers import AveragePooling2D
+from tensorflow.keras.layers import GlobalMaxPooling2D
+from tensorflow.keras.layers import GlobalAveragePooling2D
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import concatenate
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.utils.layer_utils import convert_all_kernels_in_model
+from tensorflow.keras.utils.data_utils import get_file
+from tensorflow.keras.engine.topology import get_source_inputs
+from tensorflow.keras.applications.imagenet_utils import _obtain_input_shape
+from tensorflow.keras.applications.imagenet_utils import decode_predictions
+from tensorflow.keras.applications.imagenet_utils import preprocess_input as _preprocess_input
+import tensorflow.keras.backend as K
+from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau
 
 from subpixel_upscaling import SubPixelUpscaling
 
@@ -125,7 +125,7 @@ def DenseNet(input_shape=None,
     The model and the weights are compatible with both
     TensorFlow and Theano. The dimension ordering
     convention used by the model is the one
-    specified in your Keras config file.
+    specified in your tensorflow.keras config file.
 
     # Arguments
         input_shape: optional shape tuple, only to be specified
@@ -159,7 +159,7 @@ def DenseNet(input_shape=None,
             layer at the top of the network.
         weights: one of `None` (random initialization) or
             'imagenet' (pre-training on ImageNet)..
-        input_tensor: optional Keras tensor (i.e. output of `layers.Input()`)
+        input_tensor: optional tensorflow.keras tensor (i.e. output of `layers.Input()`)
             to use as image input for the model.
         pooling: Optional pooling mode for feature extraction
             when `include_top` is `False`.
@@ -185,7 +185,7 @@ def DenseNet(input_shape=None,
             paper.
 
     # Returns
-        A Keras model instance.
+        A tensorflow.keras model instance.
 
     # Raises
         ValueError: in case of invalid argument for `weights`,
@@ -217,7 +217,7 @@ def DenseNet(input_shape=None,
     if input_tensor is None:
         img_input = Input(shape=input_shape)
     else:
-        if not K.is_keras_tensor(input_tensor):
+        if not K.is_tensorflow.keras_tensor(input_tensor):
             img_input = Input(tensor=input_tensor, shape=input_shape)
         else:
             img_input = input_tensor
@@ -296,8 +296,8 @@ def DenseNet(input_shape=None,
                               '(`image_data_format="channels_first"`). '
                               'For best performance, set '
                               '`image_data_format="channels_last"` in '
-                              'your Keras config '
-                              'at ~/.keras/keras.json.')
+                              'your tensorflow.keras config '
+                              'at ~/.tensorflow.keras/tensorflow.keras.json.')
 
             print("Weights for the model were loaded successfully")
 
@@ -312,8 +312,8 @@ def DenseNetFCN(input_shape, nb_dense_block=5, growth_rate=16, nb_layers_per_blo
     '''Instantiate the DenseNet FCN architecture.
         Note that when using TensorFlow,
         for best performance you should set
-        `image_data_format='channels_last'` in your Keras config
-        at ~/.keras/keras.json.
+        `image_data_format='channels_last'` in your tensorflow.keras config
+        at ~/.tensorflow.keras/tensorflow.keras.json.
         # Arguments
             nb_dense_block: number of dense blocks to add to end (generally = 3)
             growth_rate: number of filters to add per dense block
@@ -331,7 +331,7 @@ def DenseNetFCN(input_shape, nb_dense_block=5, growth_rate=16, nb_layers_per_blo
                 layer at the top of the network.
             weights: one of `None` (random initialization) or
                 'cifar10' (pre-training on CIFAR-10)..
-            input_tensor: optional Keras tensor (i.e. output of `layers.Input()`)
+            input_tensor: optional tensorflow.keras tensor (i.e. output of `layers.Input()`)
                 to use as image input for the model.
             input_shape: optional shape tuple, only to be specified
                 if `include_top` is False (otherwise the input shape
@@ -350,7 +350,7 @@ def DenseNetFCN(input_shape, nb_dense_block=5, growth_rate=16, nb_layers_per_blo
                 'subpixel'. Defines type of upsampling algorithm used.
             batchsize: Fixed batch size. This is a temporary requirement for
                 computation of output shape in the case of Deconvolution2D layers.
-                Parameter will be removed in next iteration of Keras, which infers
+                Parameter will be removed in next iteration of tensorflow.keras, which infers
                 output shape of deconvolution layers automatically.
             early_transition: Start with an extra initial transition down and end with an extra
                 transition up to reduce the network size.
@@ -358,7 +358,7 @@ def DenseNetFCN(input_shape, nb_dense_block=5, growth_rate=16, nb_layers_per_blo
                 application, this parameter makes it configurable.
 
         # Returns
-            A Keras model instance.
+            A tensorflow.keras model instance.
     '''
 
     if weights not in {None}:
@@ -410,7 +410,7 @@ def DenseNetFCN(input_shape, nb_dense_block=5, growth_rate=16, nb_layers_per_blo
     if input_tensor is None:
         img_input = Input(shape=input_shape)
     else:
-        if not K.is_keras_tensor(input_tensor):
+        if not K.is_tensorflow.keras_tensor(input_tensor):
             img_input = Input(tensor=input_tensor, shape=input_shape)
         else:
             img_input = input_tensor
@@ -566,13 +566,13 @@ def __conv_block(ip, nb_filter, bottleneck=False, dropout_rate=None, weight_deca
         if bottleneck:
             inter_channel = nb_filter * 4
 
-            x = Conv2D(inter_channel, (1, 1), kernel_initializer='he_normal', padding='same', use_bias=False,
+            x = Conv2D(inter_channel, (1, 1), kernel_initializer='he_normal', padding="same", use_bias=False,
                        kernel_regularizer=l2(weight_decay), name=name_or_none(block_prefix, '_bottleneck_conv2D'))(x)
             x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5,
                                    name=name_or_none(block_prefix, '_bottleneck_bn'))(x)
             x = Activation('relu')(x)
 
-        x = Conv2D(nb_filter, (3, 3), kernel_initializer='he_normal', padding='same', use_bias=False,
+        x = Conv2D(nb_filter, (3, 3), kernel_initializer='he_normal', padding="same", use_bias=False,
                    name=name_or_none(block_prefix, '_conv2D'))(x)
         if dropout_rate:
             x = Dropout(dropout_rate)(x)
@@ -587,7 +587,7 @@ def __dense_block(x, nb_layers, nb_filter, growth_rate, bottleneck=False, dropou
     to subsequent ones
 
     # Arguments
-        x: input keras tensor
+        x: input tensorflow.keras tensor
         nb_layers: the number of conv_blocks to append to the model
         nb_filter: integer, the dimensionality of the output space
             (i.e. the number output of filters in the convolution)
@@ -603,11 +603,11 @@ def __dense_block(x, nb_layers, nb_filter, growth_rate, bottleneck=False, dropou
 
     # Return
         If return_concat_list is True, returns a list of the output
-        keras tensor, the number of filters and a list of all the
-        dense blocks added to the keras tensor
+        tensorflow.keras tensor, the number of filters and a list of all the
+        dense blocks added to the tensorflow.keras tensor
 
         If return_concat_list is False, returns a list of the output
-        keras tensor and the number of filters
+        tensorflow.keras tensor and the number of filters
     '''
     with K.name_scope('DenseBlock'):
         concat_axis = 1 if K.image_data_format() == 'channels_first' else -1
@@ -637,7 +637,7 @@ def __transition_block(ip, nb_filter, compression=1.0, weight_decay=1e-4, block_
     can be reduced by appropriately reducing the compression parameter.
 
     # Arguments
-        ip: input keras tensor
+        ip: input tensorflow.keras tensor
         nb_filter: integer, the dimensionality of the output space
             (i.e. the number output of filters in the convolution)
         compression: calculated as 1 - reduction. Reduces the number
@@ -660,14 +660,14 @@ def __transition_block(ip, nb_filter, compression=1.0, weight_decay=1e-4, block_
         if data_format='channels_last'.
 
     # Returns
-        a keras tensor
+        a tensorflow.keras tensor
     '''
     with K.name_scope('Transition'):
         concat_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
         x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5, name=name_or_none(block_prefix, '_bn'))(ip)
         x = Activation('relu')(x)
-        x = Conv2D(int(nb_filter * compression), (1, 1), kernel_initializer='he_normal', padding='same',
+        x = Conv2D(int(nb_filter * compression), (1, 1), kernel_initializer='he_normal', padding="same",
                    use_bias=False, kernel_regularizer=l2(weight_decay), name=name_or_none(block_prefix, '_conv2D'))(x)
         if transition_pooling == 'avg':
             x = AveragePooling2D((2, 2), strides=(2, 2))(x)
@@ -681,7 +681,7 @@ def __transition_up_block(ip, nb_filters, type='deconv', weight_decay=1E-4, bloc
     '''Adds an upsampling block. Upsampling operation relies on the the type parameter.
 
     # Arguments
-        ip: input keras tensor
+        ip: input tensorflow.keras tensor
         nb_filters: integer, the dimensionality of the output space
             (i.e. the number output of filters in the convolution)
         type: can be 'upsampling', 'subpixel', 'deconv'. Determines
@@ -702,20 +702,20 @@ def __transition_up_block(ip, nb_filters, type='deconv', weight_decay=1E-4, bloc
         `(samples, rows * 2, cols * 2, nb_filter)` if data_format='channels_last'.
 
     # Returns
-        a keras tensor
+        a tensorflow.keras tensor
     '''
     with K.name_scope('TransitionUp'):
 
         if type == 'upsampling':
             x = UpSampling2D(name=name_or_none(block_prefix, '_upsampling'))(ip)
         elif type == 'subpixel':
-            x = Conv2D(nb_filters, (3, 3), activation='relu', padding='same', kernel_regularizer=l2(weight_decay),
+            x = Conv2D(nb_filters, (3, 3), activation='relu', padding="same", kernel_regularizer=l2(weight_decay),
                        use_bias=False, kernel_initializer='he_normal', name=name_or_none(block_prefix, '_conv2D'))(ip)
             x = SubPixelUpscaling(scale_factor=2, name=name_or_none(block_prefix, '_subpixel'))(x)
-            x = Conv2D(nb_filters, (3, 3), activation='relu', padding='same', kernel_regularizer=l2(weight_decay),
+            x = Conv2D(nb_filters, (3, 3), activation='relu', padding="same", kernel_regularizer=l2(weight_decay),
                        use_bias=False, kernel_initializer='he_normal', name=name_or_none(block_prefix, '_conv2D'))(x)
         else:
-            x = Conv2DTranspose(nb_filters, (3, 3), activation='relu', padding='same', strides=(2, 2),
+            x = Conv2DTranspose(nb_filters, (3, 3), activation='relu', padding="same", strides=(2, 2),
                                 kernel_initializer='he_normal', kernel_regularizer=l2(weight_decay),
                                 name=name_or_none(block_prefix, '_conv2DT'))(ip)
         return x
@@ -768,7 +768,7 @@ def __create_dense_net(nb_classes, img_input, include_top, depth=40, nb_dense_bl
             paper.
 
     # Returns
-        a keras tensor
+        a tensorflow.keras tensor
 
     # Raises
         ValueError: in case of invalid argument for `reduction`
@@ -820,13 +820,13 @@ def __create_dense_net(nb_classes, img_input, include_top, depth=40, nb_dense_bl
             initial_kernel = (3, 3)
             initial_strides = (1, 1)
 
-        x = Conv2D(nb_filter, initial_kernel, kernel_initializer='he_normal', padding='same', name='initial_conv2D',
+        x = Conv2D(nb_filter, initial_kernel, kernel_initializer='he_normal', padding="same", name='initial_conv2D',
                    strides=initial_strides, use_bias=False, kernel_regularizer=l2(weight_decay))(img_input)
 
         if subsample_initial_block:
             x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5, name='initial_bn')(x)
             x = Activation('relu')(x)
-            x = MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
+            x = MaxPooling2D((3, 3), strides=(2, 2), padding="same")(x)
 
         # Add dense blocks
         for block_idx in range(nb_dense_block - 1):
@@ -897,7 +897,7 @@ def __create_fcn_dense_net(nb_classes, img_input, include_top, nb_dense_block=5,
             application, this parameter makes it configurable.
 
     # Returns
-        a keras tensor
+        a tensorflow.keras tensor
 
     # Raises
         ValueError: in case of invalid argument for `reduction`,
@@ -940,7 +940,7 @@ def __create_fcn_dense_net(nb_classes, img_input, include_top, nb_dense_block=5,
         compression = 1.0 - reduction
 
         # Initial convolution
-        x = Conv2D(init_conv_filters, initial_kernel_size, kernel_initializer='he_normal', padding='same', name='initial_conv2D',
+        x = Conv2D(init_conv_filters, initial_kernel_size, kernel_initializer='he_normal', padding="same", name='initial_conv2D',
                    use_bias=False, kernel_regularizer=l2(weight_decay))(img_input)
         x = BatchNormalization(axis=concat_axis, epsilon=1.1e-5, name='initial_bn')(x)
         x = Activation('relu')(x)
@@ -1001,7 +1001,7 @@ def __create_fcn_dense_net(nb_classes, img_input, include_top, nb_dense_block=5,
             x_up = __transition_up_block(x_up, nb_filters=nb_filter, type=upsampling_type, weight_decay=weight_decay,
                                          block_prefix='tr_up_early')
         if include_top:
-            x = Conv2D(nb_classes, (1, 1), activation='linear', padding='same', use_bias=False)(x_up)
+            x = Conv2D(nb_classes, (1, 1), activation='linear', padding="same", use_bias=False)(x_up)
 
             if K.image_data_format() == 'channels_first':
                 channel, row, col = input_shape

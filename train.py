@@ -8,27 +8,30 @@ If you have any questions, please email me at lalonde@knights.ucf.edu.
 This file is used for training models. Please see the README for details about training.
 '''
 
-from __future__ import print_function
 
+from __future__ import print_function
+from data_kmr import load_kmr_tfdata
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
 
 from os.path import join
 import numpy as np
 
-from keras.optimizers import Adam
-from keras import backend as K
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend as K
 K.set_image_data_format('channels_last')
-from keras.utils.training_utils import multi_gpu_model
-from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau, TensorBoard
+# from tensorflow.keras.utils import multi_gpu_model # replaced by distribute strategy
+from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau, TensorBoard
 import tensorflow as tf
 
 from custom_losses import dice_hard, weighted_binary_crossentropy_loss, dice_loss, margin_loss
 from load_3D_data import load_class_weights, generate_train_batches, generate_val_batches
 
+img_shape = (256, 256, 3)
 
+target_size=(256, 256)
 def get_loss(root, split, net, recon_wei, choice):
     if choice == 'w_bce':
         pos_class_weight = load_class_weights(root=root, split=split)
@@ -134,21 +137,70 @@ def train(args, train_list, val_list, u_model, net_input_shape):
     model = compile_model(args=args, net_input_shape=net_input_shape, uncomp_model=u_model)
     # Set the callbacks
     callbacks = get_callbacks(args)
+    HOME_PATH = "/raid/ji"
+    train_path = HOME_PATH + "/DATA/TILES_(256, 256)"
+    val_path = HOME_PATH + "/DATA/TILES_(256, 256)"
+    test_path = HOME_PATH + "/DATA/KimuraLI"
 
-    # Training the network
-    history = model.fit_generator(
-        generate_train_batches(args.data_root_dir, train_list, net_input_shape, net=args.net,
-                               batchSize=args.batch_size, numSlices=args.slices, subSampAmt=args.subsamp,
-                               stride=args.stride, shuff=args.shuffle_data, aug_data=args.aug_data),
-        max_queue_size=40, workers=4, use_multiprocessing=False,
-        steps_per_epoch=10000,
-        validation_data=generate_val_batches(args.data_root_dir, val_list, net_input_shape, net=args.net,
-                                             batchSize=args.batch_size,  numSlices=args.slices, subSampAmt=0,
-                                             stride=20, shuff=args.shuffle_data),
+    cross_fold = [["001", "002", "003", "004",  "006", "007", "008", "009"], ["005", "010"]]
+    fold = {
+        "G1": ["01_14-7015_Ki67", "01_15-1052_Ki67", "01_14-3768_Ki67"],
+        "G2": ["01_17-5256_Ki67", "01_17-6747_Ki67", "01_17-8107_Ki67"],
+        "G3": ["01_17-7885_Ki67", "01_15-2502_Ki67", "01_17-7930_Ki67"],
+    }
+    
+    foldmat = np.vstack([fold[key] for key in fold.keys()])
+    trainGene = load_kmr_tfdata(
+        dataset_path=train_path,
+        batch_size=1,
+        cross_fold=cross_fold[0],
+        # wsi_ids=np.hstack([foldmat[1, :]]).ravel(),
+        # wsi_ids=[foldmat[1, 0],],
+        wsi_ids=foldmat.ravel(),
+        stains=["HE", "Mask"], #DAB, Mask, HE< IHC
+        aug=False,
+        target_size=target_size,
+        cache=False,
+        shuffle_buffer_size=10,
+        seed=1,
+    )
+    # # ------ check generator correspondence ------
+    # for tt in trainGene:
+    #     plt.subplot(121)
+    #     plt.imshow(tt[0][0,:,:,:]);
+    #     plt.subplot(122)
+    #     plt.imshow(tt[1][0,:,:,:]);        
+    #     plt.show()
+    # ----------------------------------------------
+    valGene = load_kmr_tfdata(
+        dataset_path=val_path,
+        batch_size=1,
+        cross_fold=cross_fold[1],
+        wsi_ids=foldmat.ravel(),
+        # wsi_ids=np.hstack([foldmat[1, :]]).ravel(),
+        # wsi_ids=[foldmat[1, 0],],
+        stains=["HE", "Mask"],
+        aug=False,
+        cache=False,
+        target_size=target_size,
+        shuffle_buffer_size=10,
+        seed=1,
+    )
+        # Training the network
+    history = model.fit(
+        # generate_train_batches(args.data_root_dir, train_list, net_input_shape, net=args.net,
+        #                        batchSize=args.batch_size, numSlices=args.slices, subSampAmt=args.subsamp,
+        #                        stride=args.stride, shuff=args.shuffle_data, aug_data=args.aug_data),
+        trainGene,
+        # max_queue_size=40, workers=1, use_multiprocessing=False,
+        steps_per_epoch=1000,
+        # validation_data=generate_val_batches(args.data_root_dir, val_list, net_input_shape, net=args.net,
+        #                                      batchSize=args.batch_size,  numSlices=args.slices, subSampAmt=0,
+        #                                      stride=20, shuff=args.shuffle_data),
+        validation_data=valGene,
         validation_steps=500, # Set validation stride larger to see more of the data.
         epochs=200,
         callbacks=callbacks,
         verbose=1)
-
     # Plot the training data collected
     plot_training(history, args)

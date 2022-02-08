@@ -37,7 +37,7 @@ Convolutional neural networks (CNNs) have shown remarkable results over the last
 ## Getting Started Guide
 
 ### Install Required Packages
-This repo of code is written for Keras using the TensorFlow backend. Please install all required packages before using this code.
+This repo of code is written for tensorflow.keras using the TensorFlow backend. Please install all required packages before using this code.
 ```bash
 pip install -r requirements.txt
 ```

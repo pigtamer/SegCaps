@@ -12,6 +12,7 @@ Please see the README for detailed instructions for this project.
 from __future__ import print_function
 
 from os.path import join
+from data_kmr import load_kmr_tfdata
 from os import makedirs
 from os import environ
 import argparse
@@ -19,7 +20,7 @@ import SimpleITK as sitk
 from time import gmtime, strftime
 time = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
 
-from keras.utils import print_summary
+# from tensorflow.keras.utils import print_summary
 
 from load_3D_data import load_data, split_data
 from model_helper import create_model
@@ -30,20 +31,21 @@ def main(args):
     assert (args.train or args.test or args.manip), 'Cannot have train, test, and manip all set to 0, Nothing to do.'
 
     # Load the training, validation, and testing data
-    try:
-        train_list, val_list, test_list = load_data(args.data_root_dir, args.split_num)
-    except:
-        # Create the training and test splits if not found
-        split_data(args.data_root_dir, num_splits=4)
-        train_list, val_list, test_list = load_data(args.data_root_dir, args.split_num)
+    # try:
+    #     train_list, val_list, test_list = load_data(args.data_root_dir, args.split_num)
+    # except:
+    #     # Create the training and test splits if not found
+    #     split_data(args.data_root_dir, num_splits=4)
+    #     train_list, val_list, test_list = load_data(args.data_root_dir, args.split_num)
 
-    # Get image properties from first image. Assume they are all the same.
-    img_shape = sitk.GetArrayFromImage(sitk.ReadImage(join(args.data_root_dir, 'imgs', train_list[0][0]))).shape
-    net_input_shape = (img_shape[1], img_shape[2], args.slices)
-
+    # # Get image properties from first image. Assume they are all the same.
+    # img_shape = sitk.GetArrayFromImage(sitk.ReadImage(join(args.data_root_dir, 'imgs', train_list[0][0]))).shape
+    img_shape = (256, 256, 3)
+    net_input_shape = (img_shape[0], img_shape[1], 3)
+    target_size=(net_input_shape[0], net_input_shape[1])
     # Create the model for training/testing/manipulation
     model_list = create_model(args=args, input_shape=net_input_shape)
-    print_summary(model=model_list[0], positions=[.38, .65, .75, 1.])
+    # print_summary(model=model_list[0], positions=[.38, .65, .75, 1.])
 
     args.output_name = 'split-' + str(args.split_num) + '_batch-' + str(args.batch_size) + \
                        '_shuff-' + str(args.shuffle_data) + '_aug-' + str(args.aug_data) + \
@@ -79,7 +81,8 @@ def main(args):
     if args.train:
         from train import train
         # Run training
-        train(args, train_list, val_list, model_list[0], net_input_shape)
+        # train(args, train_list, val_list, model_list[0], net_input_shape)
+        train(args, None, None, model_list[0], net_input_shape)
 
     if args.test:
         from test import test
@@ -113,7 +116,7 @@ if __name__ == '__main__':
                         help='Whether or not to shuffle the training data (both per epoch and in slice order.')
     parser.add_argument('--aug_data', type=int, default=1, choices=[0,1],
                         help='Whether or not to use data augmentation during training.')
-    parser.add_argument('--loss', type=str.lower, default='w_bce', choices=['bce', 'w_bce', 'dice', 'mar', 'w_mar'],
+    parser.add_argument('--loss', type=str.lower, default='dice', choices=['bce', 'w_bce', 'dice', 'mar', 'w_mar'],
                         help='Which loss to use. "bce" and "w_bce": unweighted and weighted binary cross entropy'
                              '"dice": soft dice coefficient, "mar" and "w_mar": unweighted and weighted margin loss.')
     parser.add_argument('--batch_size', type=int, default=1,

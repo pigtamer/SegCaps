@@ -7,5 +7,5 @@ scikit-image
 pillow
 SimpleITK
 tensorflow-gpu
-keras
+tensorflow.keras
 h5py

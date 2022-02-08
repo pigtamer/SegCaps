@@ -9,9 +9,10 @@ This file is used for testing models. Please see the README for details about te
 '''
 
 from __future__ import print_function
+from data_kmr import load_kmr_tfdata
 
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
 
@@ -25,9 +26,9 @@ import scipy.ndimage.morphology
 from skimage import measure, filters
 from metrics import dc, jc, assd
 
-from keras import backend as K
+from tensorflow.keras import backend as K
 K.set_image_data_format('channels_last')
-from keras.utils import print_summary
+from tensorflow.keras.utils import print_summary
 
 from load_3D_data import generate_test_batches
 
@@ -94,7 +95,7 @@ def test(args, test_list, model_list, net_input_shape):
         eval_model.load_weights(weights_path)
     except:
         print('Unable to find weights path. Testing with random weights.')
-    print_summary(model=eval_model, positions=[.38, .65, .75, 1.])
+    # print_summary(model=eval_model, positions=[.38, .65, .75, 1.])
 
     # Set up placeholders
     outfile = ''

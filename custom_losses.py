@@ -6,7 +6,7 @@ Code written by: Rodney LaLonde
 If you use significant portions of this code or the ideas from our paper, please cite it :)
 If you have any questions, please email me at lalonde@knights.ucf.edu.
 
-This file contains the definitions of custom loss functions not present in the default Keras.
+This file contains the definitions of custom loss functions not present in the default tensorflow.keras.
 '''
 
 import tensorflow as tf
@@ -47,13 +47,13 @@ def dice_soft(y_true, y_pred, loss_type='sorensen', axis=[1,2,3], smooth=1e-5, f
         # transform back to logits
         _epsilon = tf.convert_to_tensor(1e-7, y_pred.dtype.base_dtype)
         y_pred = tf.clip_by_value(y_pred, _epsilon, 1 - _epsilon)
-        y_pred = tf.log(y_pred / (1 - y_pred))
+        y_pred = tf.math.log(y_pred / (1 - y_pred))
 
     inse = tf.reduce_sum(y_pred * y_true, axis=axis)
     if loss_type == 'jaccard':
         l = tf.reduce_sum(y_pred * y_pred, axis=axis)
         r = tf.reduce_sum(y_true * y_true, axis=axis)
-    elif loss_type == 'sorensen':
+    elif loss_type == 'sorensen': # dice
         l = tf.reduce_sum(y_pred, axis=axis)
         r = tf.reduce_sum(y_true, axis=axis)
     else:
@@ -124,12 +124,12 @@ def weighted_binary_crossentropy_loss(pos_weight):
             A tensor.
         """
         # Note: tf.nn.sigmoid_cross_entropy_with_logits
-        # expects logits, Keras expects probabilities.
+        # expects logits, tensorflow.keras expects probabilities.
         if not from_logits:
             # transform back to logits
             _epsilon = tf.convert_to_tensor(1e-7, output.dtype.base_dtype)
             output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
-            output = tf.log(output / (1 - output))
+            output = tf.math.log(output / (1 - output))
 
         return tf.nn.weighted_cross_entropy_with_logits(targets=target,
                                                        logits=output,
