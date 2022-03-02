@@ -203,7 +203,8 @@ def load_kmr_tfdata(
         AUTOTUNE = tf.data.experimental.AUTOTUNE
         if staintype != "DAB" and staintype != "Mask":
             labeled_ds = list_ds.map(parse_image, num_parallel_calls=AUTOTUNE)
-            layer = tf.keras.layers.Normalization(mean=0., variance=1.)
+            # layer = tf.keras.layers.Normalization(mean=0., variance=1.)
+            layer = tf.keras.layers.experimental.preprocessing.Normalization() # tf<2.6.0
             labeled_ds = labeled_ds.map(layer)
         else:
             labeled_ds = list_ds.map(parse_mask, num_parallel_calls=AUTOTUNE)
@@ -215,10 +216,12 @@ def load_kmr_tfdata(
             else cache,
         )
     # train_generator = zip((data_generator[stains[0]], data_generator[stains[1]]))
-    # n = len(list_ds)
+    n = len(list_ds)
+    print(n)
     # return (train_generator, n)
     for x, y in zip(data_generator[stains[0]], data_generator[stains[1]]):
-        yield ([x, y], [y, x*y])
+        # yield ([x, y], [y, x*y])
+        yield (x, [y, x*y])
 
 
 # %%

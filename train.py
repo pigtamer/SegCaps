@@ -67,30 +67,42 @@ def get_callbacks(arguments):
     lr_reducer = ReduceLROnPlateau(monitor=monitor_name, factor=0.05, cooldown=0, patience=5,verbose=1, mode='max')
     early_stopper = EarlyStopping(monitor=monitor_name, min_delta=0, patience=25, verbose=0, mode='max')
 
-    return [model_checkpoint, csv_logger, lr_reducer, early_stopper, tb]
+    # return [model_checkpoint, csv_logger, lr_reducer, early_stopper, tb]
+    return [model_checkpoint, csv_logger, early_stopper, tb]
 
-def compile_model(args, net_input_shape, uncomp_model):
-    # Set optimizer loss and metrics
-    opt = Adam(lr=args.initial_lr, beta_1=0.99, beta_2=0.999, decay=1e-6)
-    if args.net.find('caps') != -1:
-        metrics = {'out_seg': dice_hard}
-    else:
-        metrics = [dice_hard]
-
-    loss, loss_weighting = get_loss(root=args.data_root_dir, split=args.split_num, net=args.net,
-                                    recon_wei=args.recon_wei, choice=args.loss)
-
+def compile_model(args, net_input_shape, uncomp_model, strategy):
     # If using CPU or single GPU
     if args.gpus <= 1:
+            # Set optimizer loss and metrics
+        opt = Adam(lr=args.initial_lr, beta_1=0.99, beta_2=0.999, decay=1e-6)
+        if args.net.find('caps') != -1:
+            metrics = {'out_seg': dice_hard}
+        else:
+            metrics = [dice_hard]
+
+        loss, loss_weighting = get_loss(root=args.data_root_dir, split=args.split_num, net=args.net,
+                                        recon_wei=args.recon_wei, choice=args.loss)
         uncomp_model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
         return uncomp_model
     # If using multiple GPUs
     else:
-        with tf.device("/cpu:0"):
-            uncomp_model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
-            model = multi_gpu_model(uncomp_model, gpus=args.gpus)
-            model.__setattr__('callback_model', uncomp_model)
-        model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
+        # strategy = tf.distribute.MirroredStrategy(devices=[
+        # "/gpu:%s"%id for id in args.which_gpus[::2]])
+        with strategy.scope():
+            # Set optimizer loss and metrics
+            opt = Adam(lr=args.initial_lr, beta_1=0.99, beta_2=0.999, decay=1e-6)
+            if args.net.find('caps') != -1:
+                metrics = {'out_seg': dice_hard}
+            else:
+                metrics = [dice_hard]
+
+            loss, loss_weighting = get_loss(root=args.data_root_dir, split=args.split_num, net=args.net,
+                                            recon_wei=args.recon_wei, choice=args.loss)
+            with tf.device("/cpu:0"):        
+                uncomp_model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
+                model = uncomp_model
+                # model.__setattr__('callback_model', uncomp_model)
+            model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
         return model
 
 
@@ -132,9 +144,10 @@ def plot_training(training_history, arguments):
     f.savefig(join(arguments.output_dir, arguments.output_name + '_plots_' + arguments.time + '.png'))
     plt.close()
 
-def train(args, train_list, val_list, u_model, net_input_shape):
+def train(args, train_list, val_list, u_model, net_input_shape, strategy):
     # Compile the loaded model
-    model = compile_model(args=args, net_input_shape=net_input_shape, uncomp_model=u_model)
+    with strategy.scope():
+        model = compile_model(args=args, net_input_shape=net_input_shape, uncomp_model=u_model, strategy=strategy)
     # Set the callbacks
     callbacks = get_callbacks(args)
     HOME_PATH = "/raid/ji"
@@ -152,16 +165,17 @@ def train(args, train_list, val_list, u_model, net_input_shape):
     foldmat = np.vstack([fold[key] for key in fold.keys()])
     trainGene = load_kmr_tfdata(
         dataset_path=train_path,
-        batch_size=1,
-        cross_fold=cross_fold[0],
+        batch_size=args.batch_size,
+        # cross_fold=cross_fold[0],
+        cross_fold=["006", "007"],
         # wsi_ids=np.hstack([foldmat[1, :]]).ravel(),
-        # wsi_ids=[foldmat[1, 0],],
-        wsi_ids=foldmat.ravel(),
+        wsi_ids=[foldmat[1, 0],],
+        # wsi_ids=foldmat.ravel(),
         stains=["HE", "Mask"], #DAB, Mask, HE< IHC
         aug=False,
         target_size=target_size,
         cache=False,
-        shuffle_buffer_size=10,
+        shuffle_buffer_size=12800,
         seed=1,
     )
     # # ------ check generator correspondence ------
@@ -174,33 +188,80 @@ def train(args, train_list, val_list, u_model, net_input_shape):
     # ----------------------------------------------
     valGene = load_kmr_tfdata(
         dataset_path=val_path,
-        batch_size=1,
+        batch_size=args.batch_size,
         cross_fold=cross_fold[1],
-        wsi_ids=foldmat.ravel(),
+        # wsi_ids=foldmat.ravel(),
         # wsi_ids=np.hstack([foldmat[1, :]]).ravel(),
-        # wsi_ids=[foldmat[1, 0],],
+        wsi_ids=[foldmat[1, 0],],
         stains=["HE", "Mask"],
         aug=False,
         cache=False,
         target_size=target_size,
-        shuffle_buffer_size=10,
+        shuffle_buffer_size=128,
         seed=1,
     )
+    
+    model.load_weights("./saved_models/segcapsr3/split-0_batch-16_shuff-1_aug-1_loss-bce_slic-1_sub--1_strid-1_lr-0.0001_recon-0.1_model_2022-02-28-09:16:23.hdf5")
+    # model.load_weights("./saved_models/unet/split-0_batch-16_shuff-1_aug-1_loss-bce_slic-1_sub--1_strid-1_lr-0.0001_recon-0.1_model_2022-02-28-07:25:55.hdf5")
         # Training the network
-    history = model.fit(
-        # generate_train_batches(args.data_root_dir, train_list, net_input_shape, net=args.net,
-        #                        batchSize=args.batch_size, numSlices=args.slices, subSampAmt=args.subsamp,
-        #                        stride=args.stride, shuff=args.shuffle_data, aug_data=args.aug_data),
-        trainGene,
-        # max_queue_size=40, workers=1, use_multiprocessing=False,
-        steps_per_epoch=1000,
-        # validation_data=generate_val_batches(args.data_root_dir, val_list, net_input_shape, net=args.net,
-        #                                      batchSize=args.batch_size,  numSlices=args.slices, subSampAmt=0,
-        #                                      stride=20, shuff=args.shuffle_data),
-        validation_data=valGene,
-        validation_steps=500, # Set validation stride larger to see more of the data.
-        epochs=200,
-        callbacks=callbacks,
-        verbose=1)
+    # history = model.fit(
+    #     # generate_train_batches(args.data_root_dir, train_list, net_input_shape, net=args.net,
+    #     #                        batchSize=args.batch_size, numSlices=args.slices, subSampAmt=args.subsamp,
+    #     #                        stride=args.stride, shuff=args.shuffle_data, aug_data=args.aug_data),
+    #     trainGene,
+    #     # max_queue_size=40, workers=1, use_multiprocessing=False,
+    #     steps_per_epoch=688//(32/args.batch_size),
+    #     # validation_data=generate_val_batches(args.data_root_dir, val_list, net_input_shape, net=args.net,
+    #     #                                      batchSize=args.batch_size,  numSlices=args.slices, subSampAmt=0,
+    #     #                                      stride=20, shuff=args.shuffle_data),
+    #     validation_data=valGene,
+    #     validation_steps=100, # Set validation stride larger to see more of the data.
+    #     epochs=200,
+    #     callbacks=callbacks,
+    #     verbose=1)
     # Plot the training data collected
-    plot_training(history, args)
+    tt= []
+    tl =[]
+    lbl = []
+    N = 5
+    print("ASHU")
+    for kk, it in zip(range(N), valGene):
+            # for kb in range(args.batch_size):
+            #     # print(it)
+        # print(it[0].shape)
+        pred_fcn = model.predict(it, 
+                        # steps=1,
+                        )
+        print(np.array(pred_fcn).shape)
+        # print(np.array(pred_fcn).shape)
+        # print(it)
+        for k in range(args.batch_size):
+            fig = plt.figure(figsize=(6,6), dpi=300)
+            plt.subplot(221);plt.imshow(pred_fcn[0][k, :, :, :], cmap="gray");plt.axis(False)
+            plt.subplot(222);plt.imshow(pred_fcn[1][k, :, :, :], cmap="gray");plt.axis(False)
+            # plt.subplot(223);plt.imshow(it[0][0][k, :, :, :]);plt.axis(False)
+            plt.subplot(223);plt.imshow(it[0][k, :, :, :]);plt.axis(False)
+            # plt.subplot(224);plt.imshow(it[0][1][k, :, :, :]);plt.axis(False)
+            # plt.subplot(224);plt.imshow(it[0][1][k, :, :, :]);plt.axis(False)
+            # plt.show()
+            plt.savefig("/home/cunyuan/segcaps2%s.jpg"%(kk*100+k))
+
+
+    # --- unet ----
+    # for kk, it in zip(range(N), valGene):
+    #         # for kb in range(args.batch_size):
+    #         #     # print(it)
+
+    #     pred_fcn = model.predict(it, 
+    #                     # steps=1,
+    #                     )
+    #     print(np.array(pred_fcn).shape)
+    #     print(it)
+    #     for k in range(args.batch_size):
+    #         fig = plt.figure(figsize=(6,6), dpi=300)
+    #         plt.subplot(131);plt.imshow(pred_fcn[k, :, :, :], cmap="gray");plt.axis(False)
+    #         plt.subplot(132);plt.imshow(it[0][0][k, :, :, :]);plt.axis(False)
+    #         plt.subplot(133);plt.imshow(it[0][1][k, :, :, :]);plt.axis(False)
+    #         # plt.show()
+    #         plt.savefig("/home/cunyuan/unet%s.jpg"%(kk*100+k))
+        # plot_training(history, args)

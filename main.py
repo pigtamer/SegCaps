@@ -18,6 +18,7 @@ from os import environ
 import argparse
 import SimpleITK as sitk
 from time import gmtime, strftime
+import tensorflow as tf
 time = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
 
 # from tensorflow.keras.utils import print_summary
@@ -44,7 +45,10 @@ def main(args):
     net_input_shape = (img_shape[0], img_shape[1], 3)
     target_size=(net_input_shape[0], net_input_shape[1])
     # Create the model for training/testing/manipulation
-    model_list = create_model(args=args, input_shape=net_input_shape)
+    strategy = tf.distribute.MirroredStrategy(devices=[
+    "/gpu:%s"%id for id in args.which_gpus[::2]])
+    with strategy.scope():
+        model_list = create_model(args=args, input_shape=net_input_shape)
     # print_summary(model=model_list[0], positions=[.38, .65, .75, 1.])
 
     args.output_name = 'split-' + str(args.split_num) + '_batch-' + str(args.batch_size) + \
@@ -82,7 +86,7 @@ def main(args):
         from train import train
         # Run training
         # train(args, train_list, val_list, model_list[0], net_input_shape)
-        train(args, None, None, model_list[0], net_input_shape)
+        train(args, None, None, model_list[1], net_input_shape, strategy) #list [0] fr trainng [1] for eval
 
     if args.test:
         from test import test
@@ -116,7 +120,7 @@ if __name__ == '__main__':
                         help='Whether or not to shuffle the training data (both per epoch and in slice order.')
     parser.add_argument('--aug_data', type=int, default=1, choices=[0,1],
                         help='Whether or not to use data augmentation during training.')
-    parser.add_argument('--loss', type=str.lower, default='dice', choices=['bce', 'w_bce', 'dice', 'mar', 'w_mar'],
+    parser.add_argument('--loss', type=str.lower, default='bce', choices=['bce', 'w_bce', 'dice', 'mar', 'w_mar'],
                         help='Which loss to use. "bce" and "w_bce": unweighted and weighted binary cross entropy'
                              '"dice": soft dice coefficient, "mar" and "w_mar": unweighted and weighted margin loss.')
     parser.add_argument('--batch_size', type=int, default=1,
